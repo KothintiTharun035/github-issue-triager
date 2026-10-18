@@ -234,23 +234,40 @@ def main():
 
     print("\nAI triage completed.")
 
-    apply_choice = input(
-        "\nApply the suggested labels to this GitHub issue? (y/n): "
-    ).strip().lower()
-
-    if apply_choice == "y":
+    
+    if args.apply_labels:
         if not args.issue_url:
             print("GitHub issue URL is required to apply labels.")
-        else:
-            try:
+            raise SystemExit(1)
+
+        try:
+            apply_github_labels(
+                args.issue_url,
+                result.get("labels", [])
+            )
+        except Exception as exc:
+            print(f"\nCould not apply GitHub labels: {exc}")
+            raise SystemExit(1)
+
+    elif args.issue_url:
+        # GitHub Actions has no interactive terminal.
+        if not os.getenv("GITHUB_ACTIONS"):
+            apply_choice = input(
+                "\nApply the suggested labels to this GitHub issue? (y/n): "
+            ).strip().lower()
+
+            if apply_choice == "y":
                 apply_github_labels(
                     args.issue_url,
                     result.get("labels", [])
                 )
-            except Exception as exc:
-                print(f"\n❌ Could not apply GitHub labels: {exc}")
-    else:
-        print("Labels were not applied.")
+            else:
+                print("Labels were not applied.")
+        else:
+            print(
+                "\nRead-only mode: labels were not applied. "
+                "Enable the workflow's apply_labels input to apply them."
+            )
 
     severity = result.get("severity", "medium")
     labels = result.get("labels", [])
