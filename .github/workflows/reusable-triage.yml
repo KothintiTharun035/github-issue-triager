@@ -1,0 +1,57 @@
+
+name: Reusable GitHub Issue Triager
+
+on:
+  workflow_call:
+    inputs:
+      issue_url:
+        description: "GitHub issue URL to analyze"
+        required: true
+        type: string
+      apply_labels:
+        description: "Apply suggested labels to the issue"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      GOOGLE_API_KEY:
+        required: true
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check out the triager
+        uses: actions/checkout@v4
+        with:
+          repository: KothintiTharun035/github-issue-triager
+          ref: main
+          path: github-issue-triager
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install -r github-issue-triager/requirements.txt
+
+      - name: Run AI triager
+        working-directory: github-issue-triager
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          ISSUE_URL: ${{ inputs.issue_url }}
+          APPLY_LABELS: ${{ inputs.apply_labels }}
+        shell: bash
+        run: |
+          if [ "$APPLY_LABELS" = "true" ]; then
+            python agent.py --issue-url "$ISSUE_URL" --apply-labels
+          else
+            python agent.py --issue-url "$ISSUE_URL"
+          fi
