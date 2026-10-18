@@ -221,6 +221,11 @@ def main():
     group.add_argument("--issue-url", help="GitHub issue URL")
     group.add_argument("--title", help="Issue title (use with --body)")
     parser.add_argument("--body", default="", help="Issue body text")
+    parser.add_argument(
+        "--apply-labels",
+        action="store_true",
+        help="Apply AI-suggested labels without asking interactively",
+    )
     args = parser.parse_args()
 
     if args.issue_url:
