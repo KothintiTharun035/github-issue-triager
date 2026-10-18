@@ -1,26 +1,31 @@
 
 # 🤖 AI-Powered GitHub Issue Triager
 
-An AI-powered developer tool that analyzes GitHub issues using Google Gemini, identifies issue severity and category, generates structured triage reports, and optionally applies suggested labels through the GitHub REST API.
+An AI-powered developer tool that analyzes GitHub issues using Google Gemini, classifies issue severity, generates structured triage reports, and optionally applies suggested labels through the GitHub REST API.
+
+The project supports local execution, manual GitHub Actions workflows, and reusable workflows that other developers can configure in their own repositories.
 
 ## 🚀 Features
 
-- **AI-Powered Triage:** Analyzes GitHub issue titles and descriptions using Google Gemini 2.5 Flash.
-- **Severity Assessment:** Estimates issue severity and priority.
-- **Issue Classification:** Identifies the issue category and recommends relevant labels.
+- **AI-Powered Analysis:** Uses Google Gemini 2.5 Flash to analyze issue titles and descriptions.
+- **Severity Assessment:** Estimates severity and priority.
+- **Issue Classification:** Identifies categories and recommends relevant labels.
 - **Structured Reports:** Generates summaries, investigation notes, and reproduction clarity assessments.
-- **GitHub Integration:** Fetches public issue details and applies suggested labels using the GitHub REST API.
-- **Cloud Execution:** Runs through GitHub Actions without requiring your computer to remain running.
-- **Controlled Label Application:** Supports read-only triage and optional label application.
+- **GitHub REST API:** Fetches issue details and optionally applies suggested labels.
+- **Cloud Execution:** Runs through GitHub Actions.
+- **Reusable Workflow:** Allows other repositories to call the triager workflow.
+- **Controlled Changes:** Supports read-only analysis and optional label application.
+- **Automated Testing:** Includes pytest tests for successful fetching, invalid URLs, missing issues, authentication errors, and pull-request rejection.
 
 ## 🛠️ Tech Stack
 
-- **Language:** Python
+- **Language:** Python 3.12+
 - **LLM:** Google Gemini 2.5 Flash
 - **AI Framework:** LangChain
 - **API Integration:** GitHub REST API
 - **Automation:** GitHub Actions
-- **Configuration:** Python dotenv
+- **Testing:** pytest
+- **Configuration:** python-dotenv
 
 ## 🏗️ Architecture
 
@@ -37,28 +42,50 @@ Fetch Issue Details
 Google Gemini 2.5 Flash
        |
        v
-AI Triage Report
+Severity, Category, Summary
+and Suggested Labels
        |
        v
-Suggested Labels
+Structured Triage Report
        |
        v
-Optional GitHub Label Application
+Optional Label Application
+       |
+       v
+GitHub Issue Updated
 ```
 
 ## 📋 Example Output
 
-For an issue such as "Login fails after entering valid credentials", the agent can generate:
+For an issue titled "Login fails after entering valid credentials", the agent can produce a report like:
 
 - **Severity:** Critical
 - **Category:** Bug
 - **Suggested labels:** `bug`, `critical`, `authentication`, `backend`, `500-error`
-- **Summary:** Login fails after valid credentials are entered.
+- **Summary:** Users cannot log in after entering valid credentials.
 - **Recommended action:** Investigate the authentication API and backend logs.
 
-*The actual output depends on the issue details and AI response.*
+Actual output depends on the issue details and Gemini's response.
 
-## ⚙️ Local Setup
+## 📁 Project Structure
+
+```text
+github-issue-triager/
+├── .github/
+│   └── workflows/
+│       ├── triage.yml
+│       ├── reusable-triage.yml
+│       └── example-caller.yml
+├── tests/
+│   └── test_agent.py
+├── agent.py
+├── requirements.txt
+├── metadata.yaml
+├── .gitignore
+└── README.md
+```
+
+## ⚙️ Local Installation
 
 ### 1. Clone the repository
 
@@ -67,13 +94,20 @@ git clone https://github.com/KothintiTharun035/github-issue-triager.git
 cd github-issue-triager
 ```
 
-### 2. Create and activate a virtual environment
+### 2. Create a virtual environment
 
 Windows:
 
-```bash
+```powershell
 python -m venv .venv
 .venv\Scripts\activate
+```
+
+macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
 ### 3. Install dependencies
@@ -91,11 +125,13 @@ GOOGLE_API_KEY=your_google_gemini_api_key
 GITHUB_TOKEN=your_github_personal_access_token
 ```
 
-Use a Google Gemini API key for AI requests. A GitHub token with suitable repository Issues permissions is required when applying labels.
+Obtain a Gemini API key through Google AI Studio.
 
-**Security:** Never commit `.env` or expose API keys and access tokens in screenshots or logs.
+A GitHub token with appropriate Issues permissions is needed when applying labels. Public issue fetching may work without a token, subject to GitHub API limits.
 
-### 5. Run a triage using a GitHub issue URL
+Never commit `.env` or expose tokens in logs, screenshots, or source code.
+
+### 5. Run read-only triage
 
 ```bash
 python agent.py --issue-url "https://github.com/OWNER/REPOSITORY/issues/1"
@@ -107,47 +143,136 @@ python agent.py --issue-url "https://github.com/OWNER/REPOSITORY/issues/1"
 python agent.py --issue-url "https://github.com/OWNER/REPOSITORY/issues/1" --apply-labels
 ```
 
-Only use label application on issues you are authorized to modify.
+Only apply labels to repositories where you have permission to modify issues.
 
-## ☁️ GitHub Actions
+## 🧪 Automated Tests
 
-The project includes a manually triggered GitHub Actions workflow.
+Run the test suite:
+
+```bash
+python -m pytest -v
+```
+
+The current test suite covers:
+
+- Successful issue fetching
+- Invalid issue URLs
+- GitHub 404 responses
+- GitHub 401 responses
+- Pull-request URL rejection
+
+The tests mock GitHub API responses and do not need to modify real issues.
+
+## ☁️ GitHub Actions: Manual Triage
+
+The project includes a manually triggered workflow.
 
 1. Open the repository's **Actions** tab.
 2. Select **GitHub Issue Triager**.
 3. Click **Run workflow**.
 4. Enter the full GitHub issue URL.
-5. Choose whether to apply the suggested labels.
-6. Start the workflow and inspect the logs.
+5. Choose whether to apply suggested labels.
+6. Run the workflow and inspect the report.
 
-Configure these repository Actions secrets before running the workflow:
+Configure these repository Actions secrets:
 
 - `GOOGLE_API_KEY`
 - `GH_PERSONAL_ACCESS_TOKEN`
 
 The workflow passes the GitHub personal access token to the application as `GITHUB_TOKEN`.
 
-## 📁 Project Structure
+Keep label application disabled for the initial test.
 
-```text
-github-issue-triager/
-├── .github/
-│   └── workflows/
-│       └── triage.yml
-├── agent.py
-├── requirements.txt
-├── metadata.yaml
-├── .gitignore
-└── README.md
+## 🌐 Reuse the Workflow in Another Repository
+
+Other developers can call the reusable workflow from their own repositories without copying the Python implementation.
+
+### 1. Add a caller workflow
+
+In the target repository, create:
+
+`.github/workflows/ai-issue-triager.yml`
+
+Use this example:
+
+```yaml
+name: AI Issue Triager
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_url:
+        description: "Full GitHub issue URL"
+        required: true
+        type: string
+      apply_labels:
+        description: "Apply AI-suggested labels"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    uses: KothintiTharun035/github-issue-triager/.github/workflows/reusable-triage.yml@main
+    with:
+      issue_url: ${{ inputs.issue_url }}
+      apply_labels: ${{ inputs.apply_labels }}
+    secrets:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 ```
+
+### 2. Configure the Gemini API key
+
+In the target repository, go to:
+
+**Settings → Secrets and variables → Actions → New repository secret**
+
+Create a secret named:
+
+`GOOGLE_API_KEY`
+
+Set its value to the developer's own Gemini API key.
+
+Do not send the key to the project author or commit it to the repository.
+
+### 3. Run the workflow
+
+1. Open **Actions → AI Issue Triager**.
+2. Click **Run workflow**.
+3. Enter an issue URL belonging to the target repository.
+4. Keep `apply_labels` set to `false` for the first run.
+5. Inspect the triage report in the logs.
+
+### 4. Permissions and access
+
+- The reusable workflow must be accessible to the calling repository.
+- The caller workflow grants `issues: write` for label application.
+- The calling repository's `GITHUB_TOKEN` is used to modify issues in that repository.
+- Organization policies or repository settings may restrict token permissions.
+- Read-only triage should be tested before enabling label application.
+
+The caller does not need to share a personal GitHub access token with the project author.
+
+## 🔐 Security Considerations
+
+- Store API keys in environment variables or GitHub Actions secrets.
+- Never commit `.env` or access tokens.
+- Grant only the permissions needed for the workflow.
+- Keep label application opt-in until the generated results are reviewed.
+- Test on an issue you control before using the tool in other repositories.
 
 ## 🔮 Future Enhancements
 
 - Automatically triage issues when they are opened.
-- Add a web dashboard for viewing triage reports.
-- Improve automated testing and error handling.
-- Add configurable label validation and duplicate-label checks.
-- Track triage history and evaluate classification quality.
+- Add a web dashboard for reviewing AI reports.
+- Add stronger label validation and duplicate-label handling.
+- Expand automated tests and error-handling coverage.
+- Track triage quality and classification accuracy.
+- Support configurable severity and label policies.
 
 ## 👨‍💻 Author
 
@@ -155,6 +280,8 @@ github-issue-triager/
 
 GitHub: [KothintiTharun035](https://github.com/KothintiTharun035)
 
+Project repository: [github-issue-triager](https://github.com/KothintiTharun035/github-issue-triager)
+
 ---
 
-*Built to explore LLM-powered developer tools, API integration, and cloud workflow automation.*
+Built to explore LLM-powered developer tools, GitHub API integration, automated testing, and reusable cloud workflows.
