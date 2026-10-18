@@ -1,0 +1,28 @@
+
+name: AI Issue Triager
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_url:
+        description: "Full URL of the issue to triage"
+        required: true
+        type: string
+      apply_labels:
+        description: "Apply the suggested labels"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    uses: KothintiTharun035/github-issue-triager/.github/workflows/reusable-triage.yml@main
+    with:
+      issue_url: ${{ inputs.issue_url }}
+      apply_labels: ${{ inputs.apply_labels }}
+    secrets:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
